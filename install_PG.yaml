@@ -1,0 +1,66 @@
+---
+- name: Install and configure applications on instances
+  hosts:
+    - ubuntu_1
+    - ubuntu_2
+  become: yes
+  tasks:
+
+    - name: Update apt package index and install packages on 65.1.185.21
+      when: inventory_hostname == 'ubuntu_1'
+      block:
+        - name: Update apt package index
+          apt:
+            update_cache: yes
+        
+        - name: Install docker.io
+          apt:
+            name: docker.io
+            state: present
+
+        - name: Start and enable Docker service
+          systemd:
+            name: docker
+            state: started
+            enabled: yes
+
+        - name: Add current user to Docker group
+          user:
+            name: "{{ ansible_user }}"
+            group: docker
+            append: yes
+        
+        - name: Pull Grafana Docker image
+          docker_image:
+            name: grafana/grafana
+            source: pull
+
+        - name: Run Grafana container
+          docker_container:
+            name: grafana
+            image: grafana/grafana
+            state: started
+            restart_policy: always
+            published_ports:
+              - "3000:3000"
+        
+        - name: Download Prometheus tarball
+          get_url:
+            url: "https://github.com/prometheus/prometheus/releases/download/v2.53.2/prometheus-2.53.2.linux-amd64.tar.gz"
+            dest: "/tmp/prometheus-2.53.2.linux-amd64.tar.gz"
+        
+        - name: Download Alertmanager tarball
+          get_url:
+            url: "https://github.com/prometheus/alertmanager/releases/download/v0.27.0/alertmanager-0.27.0.linux-amd64.tar.gz"
+            dest: "/tmp/alertmanager-0.27.0.linux-amd64.tar.gz"
+        
+        - name: Download Blackbox Exporter tarball
+          get_url:
+            url: "https://github.com/prometheus/blackbox_exporter/releases/download/v0.25.0/blackbox_exporter-0.25.0.linux-amd64.tar.gz"
+            dest: "/tmp/blackbox_exporter-0.25.0.linux-amd64.tar.gz"
+
+    - name: Download Node Exporter tarball on 35.45.56.101
+      when: inventory_hostname == 'ubuntu_2'
+      get_url:
+        url: "https://github.com/prometheus/node_exporter/releases/download/v1.8.2/node_exporter-1.8.2.linux-amd64.tar.gz"
+        dest: "/tmp/node_exporter-1.8.2.linux-amd64.tar.gz"
