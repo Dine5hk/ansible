@@ -1,0 +1,16 @@
+- name: Install and start Nginx
+  hosts: webservers
+  become: yes
+  vars:
+    nginx_version: 1.18.0
+  tasks:
+    - name: Install Nginx
+      apt:
+        name: nginx={{ nginx_version }}
+        state: present
+
+    - name: Start Nginx service
+      service:
+        name: nginx
+        state: started
+        enabled: yes
